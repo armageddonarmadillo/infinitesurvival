@@ -1,0 +1,67 @@
+<html><body style='background-color:#141414; display: flex; justify-content:center'>
+<canvas id='gameboard' style='border: 2px solid lime; overflow: hidden;'/>
+<script>
+	document.addEventListener('click', input)
+	
+	//canvas elements, borders, context, w/h
+	const canvas = document.getElementById('gameboard')
+	canvas.width = document.body.clientWidth
+	canvas.height = document.body.clientHeight
+	var c = canvas.getContext('2d')
+	console.log(c)
+	
+	//unit vars to be init
+	var started, delay, tick, score, enemies
+	
+	//game elements
+	var ttl = 'infinite survival' 	//title
+	var ins = 'CLICK TO BEGIN'		//instructions
+	
+	draw()
+	
+	function init() {
+		started = true
+		delay = 22
+		tick = 0
+		score = 0
+		enemies = []
+	}
+	
+	function input(e) {
+		started ? console.log(e) : init()
+	}
+	
+	function update() {
+		tick++
+	}
+	
+	function draw() { started ? drawgame() : drawtitle() }
+	
+	function drawgame(){
+		update()
+		if(tick++ >= delay){
+			tick = 0
+			c.fillStyle = '#101010'
+			c.fillRect(0, 0, canvas.width, canvas.height)
+		}
+		requestAnimationFrame(draw)
+	}
+	
+	function drawtitle(){
+		c.fillStyle = '#ead080'
+		c.fillRect(0, 0, canvas.width, canvas.height)
+		c.fillStyle = '#006600'
+		c.font = '64px monospace'
+		c.fillText(	ttl, 
+					canvas.width / 2 - c.measureText(ttl).width / 2, 
+					canvas.height / 2 - 70
+					)
+		c.fillStyle = 'red'
+		c.font = '42px monospace' 
+		c.fillText(	ins, 
+					canvas.width / 2 - c.measureText(ins).width / 2, 
+					canvas.height / 2
+					)
+		requestAnimationFrame(draw)
+	}
+</script>

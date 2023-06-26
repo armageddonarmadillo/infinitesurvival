@@ -1,21 +1,42 @@
 <html><body style='background-color:#141414; display: flex; justify-content:center'>
 <canvas id='gameboard' style='border: 2px solid lime; overflow: hidden;'/>
 <script>
-	document.addEventListener('click', input)
+	document.addEventListener('mousedown', input)
+	document.addEventListener('mouseup', input)
+	document.addEventListener('mousemove', follow)
+	document.addEventListener('keydown', keyinput)
+	document.addEventListener('keyup', keyinput)
 	
 	//canvas elements, borders, context, w/h
 	const canvas = document.getElementById('gameboard')
 	canvas.width = document.body.clientWidth
 	canvas.height = document.body.clientHeight
 	var c = canvas.getContext('2d')
-	console.log(c)
 	
 	//unit vars to be init
 	var started, delay, tick, score, enemies
 	
 	//game elements
-	var ttl = 'infinite survival' 	//title
-	var ins = 'CLICK TO BEGIN'		//instructions
+	var ttl = 'infinite survival' //title
+	var ins = 'CLICK TO BEGIN' //instructions
+	var player = [0, 0, 32]
+	var clicked = false
+	var xspeed = 0, yspeed = 0, angle = 0, playerspeed = 1
+	var targetloc = []
+	/*
+		- player structure to change soon, should be composed of assorted portions
+		- size should be standardized and scaling should be added to screen size
+		- body should be an arc
+		- limbs should be smaller arcs
+		- weapons/upgrades attached to smaller arcs depending on gameplay
+		- logic should be written to accept any variable size of player + limb combinations
+		
+		concept structure:
+		
+		player = [x, y, r] location and radius of arc
+		player = [[x,y,r], [x,y,r], [x,y,r], [x,y,r], [x,y,r]] index 0 for location and radius of main player arc, 1, 2, 3, 4 for limbs (depending on how many are needed)
+		
+	*/
 	
 	draw()
 	
@@ -25,25 +46,71 @@
 		tick = 0
 		score = 0
 		enemies = []
+		//center player on screen
+		player = [canvas.width / 2 - player[2] / 2, canvas.height / 2 - player[2] / 2, player[2]]
 	}
 	
 	function input(e) {
-		started ? console.log(e) : init()
+		clicked = e.type == 'mousedown'
+		started ? updateangle(e.x, e.y) : init()
+	}
+	
+	function follow(e) {
+		started&&clicked&&updateangle(e.x, e.y)
+	}
+	
+	function keyinput(e) {
+		started&&manualplayerupdate(e.code, e.type)
+	}
+	
+	function manualplayerupdate(code, type){
+		//reset targetloc to nothing so it can't be followed by other controller logic
+		targetloc = []
+		//this works but feels weird needs to be cleaned up (switching directions with wasd feels awkward)
+		xspeed = type == 'keydown' ? code == 'KeyA' ? -1 : code == 'KeyD' ? 1 : xspeed : 0
+		yspeed = type == 'keydown' ? code == 'KeyW' ? -1 : code == 'KeyS' ? 1 : yspeed : 0
+	}
+	
+	function updateangle(x, y){
+		if(clicked) { targetloc[0] = x; targetloc[1] = y }
+		angle = Math.atan((player[1] - y)/(player[0] - x)) + (player[0] >= x ? Math.PI : 0)
+		xspeed = Math.cos(angle) * playerspeed
+		yspeed = Math.sin(angle) * playerspeed
+	}
+	
+	function moveplayertotarget(){
+		if(Math.round(player[0]) == targetloc[0] && Math.round(player[1]) == targetloc[1]) { return }
+		player[0] += xspeed
+		player[1] += yspeed
 	}
 	
 	function update() {
 		tick++
+		
+		moveplayertotarget()
 	}
 	
 	function draw() { started ? drawgame() : drawtitle() }
 	
 	function drawgame(){
 		update()
-		if(tick++ >= delay){
+		//if(tick++ >= delay){
+			// reset tick & draw background fill
 			tick = 0
+			c.beginPath()
 			c.fillStyle = '#101010'
 			c.fillRect(0, 0, canvas.width, canvas.height)
-		}
+			
+			//draw player
+			c.beginPath()
+			c.fillStyle = '#ffbaba'
+			c.arc(player[0], player[1], player[2], 0, 2 * Math.PI)
+			c.fill()
+			c.beginPath()
+			c.fillStyle = '#0000ff'
+			c.arc(player[0], player[1], 1, 0, 2 * Math.PI)
+			c.fill()
+		//}
 		requestAnimationFrame(draw)
 	}
 	

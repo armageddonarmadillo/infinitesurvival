@@ -17,12 +17,14 @@
 	var started, delay, tick, score, enemies
 	
 	//game elements
+	var w, a, s, d
 	var ttl = 'infinite survival' //title
 	var ins = 'CLICK TO BEGIN' //instructions
 	var player = [0, 0, 32]
 	var clicked = false
 	var xspeed = 0, yspeed = 0, angle = 0, playerspeed = 1
 	var targetloc = []
+	var inputs = []
 	/*
 		- player structure to change soon, should be composed of assorted portions
 		- size should be standardized and scaling should be added to screen size
@@ -60,16 +62,79 @@
 	}
 	
 	function keyinput(e) {
-		started&&manualplayerupdate(e.code, e.type)
+		//started&&manualplayerupdate(e.code, e.type)
+		//w = e.code == 'KeyW' && e.type == 'keydown'
+		//s = e.code == 'KeyS' && e.type == 'keydown'
+		//d = e.code == 'KeyD' && e.type == 'keydown'
+		//a = e.code == 'KeyA' && e.type == 'keydown'
+
+		/*if(e.type == 'keydown'){
+			if(e.code == 'KeyW') w = true
+			if(e.code == 'KeyS') s = true
+			if(e.code == 'KeyA') a = true
+			if(e.code == 'KeyD') d = true
+			//console.log(e.code)
+			//console.log(e.type)
+		} else if(e.type == 'keyup'){
+			if(e.code == 'KeyW') w = false
+			if(e.code == 'KeyS') s = false
+			if(e.code == 'KeyA') a = false
+			if(e.code == 'KeyD') d = false
+		}*/
+
+		if(e.type == 'keydown'){
+			inputs = inputs.indexOf(e.code) == -1 ? [...inputs, e.code] : inputs
+		}
+		else if(e.type == 'keyup'){
+			inputs = inputs.filter((v) => {
+				v != e.code
+			})
+		}
+		console.log(inputs)
 	}
 	
-	function manualplayerupdate(code, type){
+	function manualplayerupdate(){
 		//reset targetloc to nothing so it can't be followed by other controller logic
 		targetloc = []
 		//this works but feels weird needs to be cleaned up (switching directions with wasd feels awkward)
-		xspeed = type == 'keydown' ? code == 'KeyA' ? -1 : code == 'KeyD' ? 1 : xspeed : 0
-		yspeed = type == 'keydown' ? code == 'KeyW' ? -1 : code == 'KeyS' ? 1 : yspeed : 0
+		//xspeed = type == 'keydown' ? code == 'KeyA' ? -1 : code == 'KeyD' ? 1 : xspeed : 0
+		//yspeed = type == 'keydown' ? code == 'KeyW' ? -1 : code == 'KeyS' ? 1 : yspeed : 0
+		//xspeed = a ? -1 : d ? 1 : 0
+		//yspeed = w ? -1 : s ? 1 : 0		
 		
+		
+		var v = false, h = false, xDir = 0, yDir = 0
+		for(var i = inputs.length; i > 0; i--){
+			if(v && h)
+				break;
+
+			switch(inputs[i]){
+				case 'KeyW':
+					v = true
+					yDir = -1
+					break;
+				case 'KeyS':
+					v = true
+					yDir = 1
+					break
+				case 'KeyA':
+					h = true
+					xDir = -1
+					break;
+				case 'KeyD':
+					h = true
+					xDir = 1
+					break
+			}
+
+		}
+		xspeed = xDir * playerspeed
+		yspeed = yDir * playerspeed	
+			
+
+		console.log(xspeed)
+
+
 		/*
 			Idea for a fix / strong solution:
 			- like how mouse movements record targetlocation to allow the player to finish pathing after button is released
@@ -103,6 +168,7 @@
 		tick++
 		
 		moveplayertotarget()
+		manualplayerupdate()
 	}
 	
 	function draw() { started ? drawgame() : drawtitle() }
@@ -120,11 +186,7 @@
 			c.beginPath()
 			c.fillStyle = '#ffbaba'
 			c.arc(player[0], player[1], player[2], 0, 2 * Math.PI)
-			c.fill()
-			c.beginPath()
-			c.fillStyle = '#0000ff'
-			c.arc(player[0], player[1], 1, 0, 2 * Math.PI)
-			c.fill()
+			c.fill()			
 		//}
 		requestAnimationFrame(draw)
 	}

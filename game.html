@@ -51,7 +51,7 @@
 	}
 	
 	function input(e) {
-		clicked = e.type == 'mousedown'
+		clicked = started && e.type == 'mousedown'
 		started ? updateangle(e.x, e.y) : init()
 	}
 	
@@ -69,6 +69,21 @@
 		//this works but feels weird needs to be cleaned up (switching directions with wasd feels awkward)
 		xspeed = type == 'keydown' ? code == 'KeyA' ? -1 : code == 'KeyD' ? 1 : xspeed : 0
 		yspeed = type == 'keydown' ? code == 'KeyW' ? -1 : code == 'KeyS' ? 1 : yspeed : 0
+		
+		/*
+			Idea for a fix / strong solution:
+			- like how mouse movements record targetlocation to allow the player to finish pathing after button is released
+			- record states when a key is pressed/released and apply those speeds based on recorded values (boolean)
+			- example being:
+			w = f, a = f, s = f, d = f for no movements
+			when w is pressed down set w = t
+			player will now move up
+			when s is pressed down set s = t
+			player will now stand still because w is still pressed
+			when w is released set w = f
+			player will now move down because s is pressed but w was released
+			adding a/d = f/t should allow for clear diagonal movements with manual control
+		*/
 	}
 	
 	function updateangle(x, y){

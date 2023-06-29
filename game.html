@@ -130,11 +130,10 @@
 	}
 	
 	function update() {
-		if(tick++ >= delay) {
-			tick = 0
-			addenemy()
-		}
+		//tickable updates
+		tick++>=delay&&(tick = 0, addenemy())
 		
+		//updates
 		checkmouse()
 		checkkeys()
 		updateplayer()
@@ -159,6 +158,7 @@
 			c.fillStyle = '#ffbaba'
 			c.arc(player[0], player[1], player[2], 0, 2 * Math.PI)
 			c.fill()
+			c.stroke()
 
 			//draw enemies
 			enemies.forEach((e) => {
@@ -166,6 +166,7 @@
 				c.fillStyle = '#ff3333'
 				c.arc(e[0], e[1], e[2], 0, 2 * Math.PI)
 				c.fill()
+				c.stroke()
 			})
 
 			//draw targetloc
@@ -187,14 +188,19 @@
 	}
 	
 	function drawtitle(){
+		//fill background
 		c.fillStyle = '#ead080'
 		c.fillRect(0, 0, canvas.width, canvas.height)
+		
+		//draw titles
 		c.fillStyle = '#006600'
 		c.font = '64px monospace'
 		c.fillText(	ttl, 
 					canvas.width / 2 - c.measureText(ttl).width / 2, 
 					canvas.height / 2 - 70
 					)
+					
+		//draw instructions
 		c.fillStyle = 'red'
 		c.font = '42px monospace' 
 		c.fillText(	ins, 

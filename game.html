@@ -13,6 +13,8 @@
 	canvas.height = document.body.clientHeight
 	var c = canvas.getContext('2d')
 	
+	console.log(canvas.width + ', ' + canvas.height)
+	
 	//unit vars to be init
 	var started, delay, tick, score, enemies
 	
@@ -53,123 +55,60 @@
 	}
 	
 	function input(e) {
+		//when mouse is clicked update player travel angle
 		clicked = started && e.type == 'mousedown'
-		started ? updateangle(e.x, e.y) : init()
+		started ? clicked&&updateangle(e.x, e.y) : init()
 	}
 	
 	function follow(e) {
+		//continue to update player travel angle while mouse is held down
 		started&&clicked&&updateangle(e.x, e.y)
 	}
 	
 	function keyinput(e) {
-		//started&&manualplayerupdate(e.code, e.type)
-		//w = e.code == 'KeyW' && e.type == 'keydown'
-		//s = e.code == 'KeyS' && e.type == 'keydown'
-		//d = e.code == 'KeyD' && e.type == 'keydown'
-		//a = e.code == 'KeyA' && e.type == 'keydown'
-
-		/*if(e.type == 'keydown'){
-			if(e.code == 'KeyW') w = true
-			if(e.code == 'KeyS') s = true
-			if(e.code == 'KeyA') a = true
-			if(e.code == 'KeyD') d = true
-			//console.log(e.code)
-			//console.log(e.type)
-		} else if(e.type == 'keyup'){
-			if(e.code == 'KeyW') w = false
-			if(e.code == 'KeyS') s = false
-			if(e.code == 'KeyA') a = false
-			if(e.code == 'KeyD') d = false
-		}*/
-
-		if(e.type == 'keydown'){
-			inputs = inputs.indexOf(e.code) == -1 ? [...inputs, e.code] : inputs
-		}
-		else if(e.type == 'keyup'){
-			inputs = inputs.filter((v) => {
-				v != e.code
-			})
-		}
-		//console.log
-		console.log(inputs)
+		//check for keydown, add most recent key to inputs
+		e.type == 'keydown'&&(inputs = inputs.indexOf(e.code) == -1 ? [...inputs, e.code] : inputs)
+		//check for keyup, remove most recent key from inputs
+		e.type == 'keyup'&&(inputs = inputs.filter((v) => { return v != e.code }))
 	}
 	
-	function manualplayerupdate(){
-		//reset targetloc to nothing so it can't be followed by other controller logic
+	function checkkeys(){
+		//check if there are no key inputs and check if there are no mouse inputs to escape and stop function
+		if(inputs.length == 0) { if(targetloc.length == 0) { xspeed = 0; yspeed = 0; } return }
+		//reset targetloc to prevent mouse from interupting keyboard unintentionally
 		targetloc = []
-		//this works but feels weird needs to be cleaned up (switching directions with wasd feels awkward)
-		//xspeed = type == 'keydown' ? code == 'KeyA' ? -1 : code == 'KeyD' ? 1 : xspeed : 0
-		//yspeed = type == 'keydown' ? code == 'KeyW' ? -1 : code == 'KeyS' ? 1 : yspeed : 0
-		//xspeed = a ? -1 : d ? 1 : 0
-		//yspeed = w ? -1 : s ? 1 : 0		
-		
-		
 		var v = false, h = false, xDir = 0, yDir = 0
-		for(var i = inputs.length; i > 0; i--){
-			if(v && h)
-				break;
-
-			switch(inputs[i]){
-				case 'KeyW':
-					v = true
-					yDir = -1
-					break;
-				case 'KeyS':
-					v = true
-					yDir = 1
-					break
-				case 'KeyA':
-					h = true
-					xDir = -1
-					break;
-				case 'KeyD':
-					h = true
-					xDir = 1
-					break
-			}
-
+		for(var i = inputs.length; i >= 0; i--){
+			v = inputs[i] == 'KeyW' && !v ? (yDir = -1, true) : inputs[i] == 'KeyS' && !v ? (yDir = 1, true) : v
+			h = inputs[i] == 'KeyA' && !h ? (xDir = -1, true) : inputs[i] == 'KeyD' && !h ? (xDir = 1, true) : h
 		}
 		xspeed = xDir * playerspeed
 		yspeed = yDir * playerspeed	
-			
-
-		console.log(xspeed)
-
-
-		/*
-			Idea for a fix / strong solution:
-			- like how mouse movements record targetlocation to allow the player to finish pathing after button is released
-			- record states when a key is pressed/released and apply those speeds based on recorded values (boolean)
-			- example being:
-			w = f, a = f, s = f, d = f for no movements
-			when w is pressed down set w = t
-			player will now move up
-			when s is pressed down set s = t
-			player will now stand still because w is still pressed
-			when w is released set w = f
-			player will now move down because s is pressed but w was released
-			adding a/d = f/t should allow for clear diagonal movements with manual control
-		*/
+	}
+	
+	function checkmouse(){
+		//move player to mouse target, if it reaches mouse target stop moving
+		if(Math.round(player[0]) == targetloc[0] && Math.round(player[1]) == targetloc[1]) { targetloc = []; return }
 	}
 	
 	function updateangle(x, y){
-		if(clicked) { targetloc[0] = x; targetloc[1] = y }
+		//check if a click exists and update targetloc to click location
+		clicked&&(targetloc[0] = x, targetloc[1] = y)
+		//update angle to travel to targetloc
 		angle = Math.atan((player[1] - y)/(player[0] - x)) + (player[0] >= x ? Math.PI : 0)
+		//update player speeds
 		xspeed = Math.cos(angle) * playerspeed
 		yspeed = Math.sin(angle) * playerspeed
-	}
-	
-	function moveplayertotarget(){
-		if(Math.round(player[0]) == targetloc[0] && Math.round(player[1]) == targetloc[1]) { return }
-		player[0] += xspeed
-		player[1] += yspeed
 	}
 	
 	function update() {
 		tick++
 		
-		moveplayertotarget()
-		manualplayerupdate()
+		checkmouse()
+		checkkeys()
+		
+		player[0] += xspeed
+		player[1] += yspeed
 	}
 	
 	function draw() { started ? drawgame() : drawtitle() }
@@ -187,7 +126,22 @@
 			c.beginPath()
 			c.fillStyle = '#ffbaba'
 			c.arc(player[0], player[1], player[2], 0, 2 * Math.PI)
-			c.fill()			
+			c.fill()		
+
+			//draw targetloc
+			if(targetloc.length > 0){
+				c.beginPath()
+				c.fillStyle = '#ffd300'
+				c.moveTo(targetloc[0], targetloc[1])
+				c.lineTo(targetloc[0] - 15, targetloc[1] - 50)
+				c.lineTo(targetloc[0], targetloc[1] - 45)
+				c.lineTo(targetloc[0] + 15, targetloc[1] - 50)
+				c.lineTo(targetloc[0], targetloc[1])
+				c.lineWidth = 3
+				c.fill()
+				c.stroke()
+				c.closePath()
+			}
 		//}
 		requestAnimationFrame(draw)
 	}

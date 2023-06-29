@@ -46,7 +46,7 @@
 	
 	function init() {
 		started = true
-		delay = 22
+		delay = 500
 		tick = 0
 		score = 0
 		enemies = []
@@ -101,14 +101,38 @@
 		yspeed = Math.sin(angle) * playerspeed
 	}
 	
+	function updateplayer(){
+		player[0] += xspeed
+		player[1] += yspeed
+	}
+	
+	function addenemy(){
+		//enemies need to randomly spawn just outside the screen
+		enemies = [...enemies, [
+								parseInt(Math.random() * canvas.width),
+								parseInt(Math.random() * canvas.height),
+								28 //parseInt(Math.random() * 50) + 100
+		]]
+	}
+	
+	function updateenemies(){
+		for(var i = 0; i < enemies.length; i++){
+			//enemies will move at an angle towards player, some may have differing behaviour so likely different lists to interate thru
+			enemies[i][0] += 0.2
+			enemies[i][1] -= 0.2
+		}
+	}
+	
 	function update() {
-		tick++
+		if(tick++ >= delay) {
+			tick = 0
+			addenemy()
+		}
 		
 		checkmouse()
 		checkkeys()
-		
-		player[0] += xspeed
-		player[1] += yspeed
+		updateplayer()
+		updateenemies()
 	}
 	
 	function draw() { started ? drawgame() : drawtitle() }
@@ -116,8 +140,10 @@
 	function drawgame(){
 		update()
 		//if(tick++ >= delay){
-			// reset tick & draw background fill
-			tick = 0
+			// reset tick
+			//tick = 0
+			
+			//draw background fill
 			c.beginPath()
 			c.fillStyle = '#101010'
 			c.fillRect(0, 0, canvas.width, canvas.height)
@@ -126,7 +152,15 @@
 			c.beginPath()
 			c.fillStyle = '#ffbaba'
 			c.arc(player[0], player[1], player[2], 0, 2 * Math.PI)
-			c.fill()		
+			c.fill()
+
+			//draw enemies
+			enemies.forEach((e) => {
+				c.beginPath()
+				c.fillStyle = '#ff3333'
+				c.arc(e[0], e[1], e[2], 0, 2 * Math.PI)
+				c.fill()
+			})
 
 			//draw targetloc
 			if(targetloc.length > 0){

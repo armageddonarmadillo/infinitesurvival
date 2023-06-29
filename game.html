@@ -46,7 +46,7 @@
 	
 	function init() {
 		started = true
-		delay = 500
+		delay = 999
 		tick = 0
 		score = 0
 		enemies = []
@@ -57,12 +57,12 @@
 	function input(e) {
 		//when mouse is clicked update player travel angle
 		clicked = started && e.type == 'mousedown'
-		started ? clicked&&updateangle(e.x, e.y) : init()
+		started ? clicked&&updateplayerangle(e.x, e.y) : init()
 	}
 	
 	function follow(e) {
 		//continue to update player travel angle while mouse is held down
-		started&&clicked&&updateangle(e.x, e.y)
+		started&&clicked&&updateplayerangle(e.x, e.y)
 	}
 	
 	function keyinput(e) {
@@ -83,7 +83,7 @@
 			h = inputs[i] == 'KeyA' && !h ? (xDir = -1, true) : inputs[i] == 'KeyD' && !h ? (xDir = 1, true) : h
 		}
 		xspeed = xDir * playerspeed
-		yspeed = yDir * playerspeed	
+		yspeed = yDir * playerspeed
 	}
 	
 	function checkmouse(){
@@ -91,7 +91,7 @@
 		if(Math.round(player[0]) == targetloc[0] && Math.round(player[1]) == targetloc[1]) { targetloc = []; return }
 	}
 	
-	function updateangle(x, y){
+	function updateplayerangle(x, y){
 		//check if a click exists and update targetloc to click location
 		clicked&&(targetloc[0] = x, targetloc[1] = y)
 		//update angle to travel to targetloc
@@ -107,19 +107,25 @@
 	}
 	
 	function addenemy(){
+		console.log('enemy added')
 		//enemies need to randomly spawn just outside the screen
+		//enemies consist of location (x, y), arc radius, angle, xspeed, yspeed
 		enemies = [...enemies, [
 								parseInt(Math.random() * canvas.width),
 								parseInt(Math.random() * canvas.height),
-								28 //parseInt(Math.random() * 50) + 100
-		]]
+								28, //parseInt(Math.random() * 50) + 100 add random widths? or maybe presets for different types of enemies
+								0,
+								0.2,
+								0.2
+								]]
 	}
 	
 	function updateenemies(){
 		for(var i = 0; i < enemies.length; i++){
 			//enemies will move at an angle towards player, some may have differing behaviour so likely different lists to interate thru
-			enemies[i][0] += 0.2
-			enemies[i][1] -= 0.2
+			enemies[i][3] = Math.atan((enemies[i][1] - player[1])/(enemies[i][0] - player[0])) + (enemies[i][0] >= player[0] ? Math.PI : 0)
+			enemies[i][0] += Math.cos(enemies[i][3]) * enemies[i][4]
+			enemies[i][1] += Math.sin(enemies[i][3]) * enemies[i][5]
 		}
 	}
 	

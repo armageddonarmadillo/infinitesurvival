@@ -46,7 +46,7 @@
 	
 	function init() {
 		started = true
-		delay = 999
+		delay = 50
 		tick = 0
 		score = 0
 		enemies = []
@@ -102,31 +102,69 @@
 	}
 	
 	function updateplayer(){
+		//enemies = enemies.filter((e) => {
+		//	return !collisioncheck(e, player)
+		//})
+
 		player[0] += xspeed
 		player[1] += yspeed
 	}
 	
 	function addenemy(){
-		console.log('enemy added')
+		console.log(Math.random())
 		//enemies need to randomly spawn just outside the screen
 		//enemies consist of location (x, y), arc radius, angle, xspeed, yspeed
-		enemies = [...enemies, [
-								parseInt(Math.random() * canvas.width),
-								parseInt(Math.random() * canvas.height),
-								28, //parseInt(Math.random() * 50) + 100 add random widths? or maybe presets for different types of enemies
-								0,
-								0.2,
-								0.2
+		var randomSpawn = parseInt(Math.random()* 100) %2 == 0
+		enemies =  [...enemies, [
+								randomSpawn ? parseInt(Math.random()* 100) %2 == 0 ? -50 : canvas.width + 50 : parseInt(Math.random() * canvas.width), //Spawning enemy on the X-asis
+								randomSpawn ? parseInt(Math.random() * canvas.height) : parseInt(Math.random()* 100) %2 == 0 ? -50 : canvas.height + 50, //Spawning enemy on the Y-asis
+								28, //parseInt(Math.random() * 50) + 100 add random widths? or maybe presets for different types of enemies //Radius
+								0, //Angle
+								1,	//xSpeed
+								1,	//ySpeed
+								0, //previousX pos
+								0  //previousY pos
 								]]
 	}
+
+	
 	
 	function updateenemies(){
-		for(var i = 0; i < enemies.length; i++){
+		enemies.forEach((e) => {
+			e[6] = e[0]
+			e[7] = e[1]
+			e[3] = Math.atan((e[1] - player[1])/(e[0] - player[0])) + (e[0] >= player[0] ? Math.PI : 0)
+			e[0] += Math.cos(e[3]) * e[4]
+			e[1] += Math.sin(e[3]) * e[5]
+			enemies.forEach((c) => {
+				if(e != c) {
+					if(collisioncheck(e, c)){
+						e[0] = e[6]
+						e[1] = e[7]
+					}
+				}
+			})
+			
+		})
+		/* for(var i = 0; i < enemies.length; i++){
 			//enemies will move at an angle towards player, some may have differing behaviour so likely different lists to interate thru
 			enemies[i][3] = Math.atan((enemies[i][1] - player[1])/(enemies[i][0] - player[0])) + (enemies[i][0] >= player[0] ? Math.PI : 0)
 			enemies[i][0] += Math.cos(enemies[i][3]) * enemies[i][4]
 			enemies[i][1] += Math.sin(enemies[i][3]) * enemies[i][5]
-		}
+		} */
+	}
+
+	function collisioncheck(a, b){
+		// Calculate the distance between the centers of the circles
+		var dx = a[0] - b[0];
+  		var dy = a[1] - b[1];
+  		var distance = Math.sqrt(dx * dx + dy * dy);
+
+ 		 // Check if the distance is less than the sum of the radii
+  		if (distance < a[2] + b[2]) { return true ;}
+		
+  		// Circles are not colliding
+  		return false;
 	}
 	
 	function update() {
@@ -155,7 +193,7 @@
 			
 			//draw player
 			c.beginPath()
-			c.fillStyle = '#ffbaba'
+			c.fillStyle = '#ffbaba'			
 			c.arc(player[0], player[1], player[2], 0, 2 * Math.PI)
 			c.fill()
 			c.stroke()
@@ -209,4 +247,5 @@
 					)
 		requestAnimationFrame(draw)
 	}
+	
 </script>

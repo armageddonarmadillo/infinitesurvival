@@ -1,5 +1,5 @@
 <html><body style='background-color:#141414; display: flex; justify-content:center'>
-<canvas id='gameboard' style='width: 100%; height: 100%; overflow: hidden;' width= '1920' height='1080'/>
+<canvas id='gameboard' style='z-index: 2; width: 100%; height: 100%; overflow: hidden;' width= '1920' height='1080'/>
 <script>
 	document.addEventListener('mousedown', input)
 	document.addEventListener('mouseup', input)
@@ -12,7 +12,7 @@
 	var c = canvas.getContext('2d')
 	
 	//unit vars to be init
-	var started, delay, tick, score, enemies
+	var started, delay, tick, score, enemies, elimit
 	
 	//game elements
 	var w, a, s, d
@@ -20,7 +20,7 @@
 	var ins = 'CLICK TO BEGIN' //instructions
 	var player = [0, 0, 32]
 	var clicked = false
-	var xspeed = 0, yspeed = 0, angle = 0, playerspeed = 1
+	var xspeed = 0, yspeed = 0, angle = 0, playerspeed = 1.25
 	var targetloc = []
 	var inputs = []
 	/*
@@ -46,6 +46,7 @@
 		tick = 0
 		score = 0
 		enemies = []
+		elimit = 100
 		//center player on screen
 		player = [canvas.width / 2 - player[2] / 2, canvas.height / 2 - player[2] / 2, player[2]]
 	}
@@ -113,12 +114,11 @@
 		enemies =  [...enemies, [
 								randomSpawn ? parseInt(Math.random()* 100) %2 == 0 ? -50 : canvas.width + 50 : parseInt(Math.random() * canvas.width), //Spawning enemy on the X-asis
 								randomSpawn ? parseInt(Math.random() * canvas.height) : parseInt(Math.random()* 100) %2 == 0 ? -50 : canvas.height + 50, //Spawning enemy on the Y-asis
-								28, //parseInt(Math.random() * 50) + 100 add random widths? or maybe presets for different types of enemies //Radius
+								Math.random() * 28 + 5, //parseInt(Math.random() * 50) + 100 add random widths? or maybe presets for different types of enemies //Radius
 								0, //Angle
-								1,	//xSpeed
-								1,	//ySpeed
-								0, //previousX pos
-								0  //previousY pos
+								Math.random() + 0.1,	//xSpeed
+								Math.random() + 0.1,	//ySpeed
+								'#' + Math.floor(Math.random()*16777215).toString(16) //color
 								]]
 	}
 
@@ -126,27 +126,20 @@
 	
 	function updateenemies(){
 		enemies.forEach((e) => {
-			e[6] = e[0]
-			e[7] = e[1]
 			e[3] = Math.atan((e[1] - player[1])/(e[0] - player[0])) + (e[0] >= player[0] ? Math.PI : 0)
 			e[0] += Math.cos(e[3]) * e[4]
 			e[1] += Math.sin(e[3]) * e[5]
 			enemies.forEach((c) => {
 				if(e != c) {
 					if(collisioncheck(e, c)){
-						e[0] = e[6]
-						e[1] = e[7]
+						const dx = e[0] - c[0], dy = e[1] - c[1], d = Math.hypot(dx, dy); //distance between enemies
+						const m = (d - e[2] - c[2]) / (2 * d);	//movement calc
+						e[0] -= m * dx, e[1] -= m * dy, c[0] += m * dx, c[1] += m * dy; //apply movement
 					}
 				}
 			})
 			
 		})
-		/* for(var i = 0; i < enemies.length; i++){
-			//enemies will move at an angle towards player, some may have differing behaviour so likely different lists to interate thru
-			enemies[i][3] = Math.atan((enemies[i][1] - player[1])/(enemies[i][0] - player[0])) + (enemies[i][0] >= player[0] ? Math.PI : 0)
-			enemies[i][0] += Math.cos(enemies[i][3]) * enemies[i][4]
-			enemies[i][1] += Math.sin(enemies[i][3]) * enemies[i][5]
-		} */
 	}
 
 	function collisioncheck(a, b){
@@ -164,7 +157,7 @@
 	
 	function update() {
 		//tickable updates
-		tick++>=delay&&(tick = 0, addenemy())
+		tick++>=delay&&(tick = 0, enemies.length < elimit && addenemy())
 		
 		//updates
 		checkmouse()
@@ -196,7 +189,7 @@
 			//draw enemies
 			enemies.forEach((e) => {
 				c.beginPath()
-				c.fillStyle = '#ff3333'
+				c.fillStyle = e[6]
 				c.arc(e[0], e[1], e[2], 0, 2 * Math.PI)
 				c.fill()
 				c.stroke()

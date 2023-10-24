@@ -1,28 +1,38 @@
 <html><body style='background-color:#141414; display: flex; justify-content:center'>
-<canvas id='gameboard' style='z-index: 2; width: 100%; height: 100%; overflow: hidden;' width= '1920' height='1080'/>
+<canvas id='gameboard' style='z-index: 2; width: 100%; height: 100%; overflow: hidden;' width= '1920' height='1080'>
+	<img src='./goblin_64x64.png' id='goblin'/>
+	<img src='./ghost_64x64.png' id='ghost'/>
+	<img src='./pumpkin_32x32.png' id='pumpkin'/>
+</canvas>
 <script>
 	document.addEventListener('mousedown', input)
 	document.addEventListener('mouseup', input)
 	document.addEventListener('mousemove', follow)
 	document.addEventListener('keydown', keyinput)
 	document.addEventListener('keyup', keyinput)
-	
+
 	//canvas elements, borders, context, w/h
 	const canvas = document.getElementById('gameboard')
 	var c = canvas.getContext('2d')
-	
+
 	//unit vars to be init
-	var started, delay, tick, score, enemies, elimit
-	
+	var started, score, enemies, spells, elimit, animtick, animdelay, spawntick, spawndelay
+
 	//game elements
 	var w, a, s, d
 	var ttl = 'infinite survival' //title
 	var ins = 'CLICK TO BEGIN' //instructions
-	var player = [0, 0, 32]
+	var player = [0, 0, 24, 21, 21] //x,y,r,fx,fy
 	var clicked = false
-	var xspeed = 0, yspeed = 0, angle = 0, playerspeed = 1.25
+	var xspeed = 0, yspeed = 0, angle = 0, playerspeed = 1
 	var targetloc = []
 	var inputs = []
+	var frame = 0
+
+	//images
+	var goblin = document.getElementById('goblin')
+	var ghost = document.getElementById('ghost')
+	var pumpkin = document.getElementById('pumpkin')
 	/*
 		- player structure to change soon, should be composed of assorted portions
 		- size should be standardized and scaling should be added to screen size
@@ -30,45 +40,46 @@
 		- limbs should be smaller arcs
 		- weapons/upgrades attached to smaller arcs depending on gameplay
 		- logic should be written to accept any variable size of player + limb combinations
-		
+
 		concept structure:
-		
+
 		player = [x, y, r] location and radius of arc
 		player = [[x,y,r], [x,y,r], [x,y,r], [x,y,r], [x,y,r]] index 0 for location and radius of main player arc, 1, 2, 3, 4 for limbs (depending on how many are needed)
-		
+
 	*/
-	
+
 	draw()
-	
+
 	function init() {
 		started = true
-		delay = 50
-		tick = 0
+		animtick = 0, spawntick = 0
+		animdelay = 100, spawndelay = 100
 		score = 0
 		enemies = []
+		spells = []
 		elimit = 100
 		//center player on screen
-		player = [canvas.width / 2 - player[2] / 2, canvas.height / 2 - player[2] / 2, player[2]]
+		player = [canvas.width / 2 - player[2] / 2, canvas.height / 2 - player[2] / 2, player[2], player[3], player[4]]
 	}
-	
+
 	function input(e) {
 		//when mouse is clicked update player travel angle
 		clicked = started && e.type == 'mousedown'
 		started ? clicked&&updateplayerangle(e.x * (canvas.width / canvas.clientWidth), e.y * (canvas.height / canvas.clientHeight)) : init()
 	}
-	
+
 	function follow(e) {
 		//continue to update player travel angle while mouse is held down
 		started&&clicked&&updateplayerangle(e.x * (canvas.width / canvas.clientWidth), e.y * (canvas.height / canvas.clientHeight))
 	}
-	
+
 	function keyinput(e) {
 		//check for keydown, add most recent key to inputs
 		e.type == 'keydown'&&(inputs = inputs.indexOf(e.code) == -1 ? [...inputs, e.code] : inputs)
 		//check for keyup, remove most recent key from inputs
 		e.type == 'keyup'&&(inputs = inputs.filter((v) => { return v != e.code }))
 	}
-	
+
 	function checkkeys(){
 		//check if there are no key inputs and check if there are no mouse inputs to escape and stop function
 		if(inputs.length == 0) { if(targetloc.length == 0) { xspeed = 0; yspeed = 0; } return }
@@ -82,12 +93,12 @@
 		xspeed = xDir * playerspeed
 		yspeed = yDir * playerspeed
 	}
-	
+
 	function checkmouse(){
 		//move player to mouse target, if it reaches mouse target stop moving
-		if(parseInt(player[0]) == parseInt(targetloc[0]) && parseInt(player[1]) == parseInt(targetloc[1])) { targetloc = []; return }
+		if(parseInt(Math.round(player[0])) == parseInt(Math.round(targetloc[0])) && parseInt(Math.round(player[1])) == parseInt(Math.round(targetloc[1]))) { targetloc = []; return }
 	}
-	
+
 	function updateplayerangle(x, y){
 		//check if a click exists and update targetloc to click location
 		clicked&&(targetloc[0] = x, targetloc[1] = y)
@@ -97,16 +108,12 @@
 		xspeed = Math.cos(angle) * playerspeed
 		yspeed = Math.sin(angle) * playerspeed
 	}
-	
-	function updateplayer(){
-		//enemies = enemies.filter((e) => {
-		//	return !collisioncheck(e, player)
-		//})
 
+	function updateplayer(){
 		player[0] += xspeed
 		player[1] += yspeed
 	}
-	
+
 	function addenemy(){
 		//enemies need to randomly spawn just outside the screen
 		//enemies consist of location (x, y), arc radius, angle, xspeed, yspeed
@@ -114,16 +121,47 @@
 		enemies =  [...enemies, [
 								randomSpawn ? parseInt(Math.random()* 100) %2 == 0 ? -50 : canvas.width + 50 : parseInt(Math.random() * canvas.width), //Spawning enemy on the X-asis
 								randomSpawn ? parseInt(Math.random() * canvas.height) : parseInt(Math.random()* 100) %2 == 0 ? -50 : canvas.height + 50, //Spawning enemy on the Y-asis
-								Math.random() * 28 + 5, //parseInt(Math.random() * 50) + 100 add random widths? or maybe presets for different types of enemies //Radius
+								randomSpawn ? 16 : 32, //Radius
 								0, //Angle
-								Math.random() + 0.1,	//xSpeed
-								Math.random() + 0.1,	//ySpeed
+								Math.random() * 0.5,	//xSpeed
+								Math.random() * 0.5,	//ySpeed
+								'#' + Math.floor(Math.random()*16777215).toString(16), //color,
+								randomSpawn ? pumpkin : ghost	//image
+								]]
+	}
+	
+	function firespell(){
+		var target = closestenemy()
+		spells = [...spells, 	[
+								player[0] + player[3],	//x
+								player[1] - player[4], //y
+								player[2] / 3, //size
+								Math.atan(((player[1] - player[4]) - target[1])/((player[0] + player[3]) - target[0])) + ((player[0] + player[3]) >= target[0] ? Math.PI : 0), // angle
 								'#' + Math.floor(Math.random()*16777215).toString(16) //color
 								]]
 	}
+	
+	//Math.atan((e[1] - player[1])/(e[0] - player[0])) + (e[0] >= player[0] ? Math.PI : 0)
+	//Math.atan((player[0] + player[3]
+	
+	function closestenemy(){
+		var shortest
+		enemies.forEach((e) => {
+			shortest = shortest || e
+			var hypcurrent = Math.abs(Math.hypot(player[0] - e[0], player[1] - e[1]))
+			var hypshortest = Math.abs(Math.hypot(player[0] - shortest[0], player[1] - shortest[1]))
+			shortest = hypcurrent < hypshortest ? e : shortest
+		})
+		return shortest
+	}
+	
+	function updatespells(){
+		spells.forEach((s) => {
+			s[0] += Math.cos(s[3]) * 2
+			s[1] += Math.sin(s[3]) * 2
+		})
+	}
 
-	
-	
 	function updateenemies(){
 		enemies.forEach((e) => {
 			e[3] = Math.atan((e[1] - player[1])/(e[0] - player[0])) + (e[0] >= player[0] ? Math.PI : 0)
@@ -138,7 +176,7 @@
 					}
 				}
 			})
-			
+
 		})
 	}
 
@@ -150,90 +188,115 @@
 
  		 // Check if the distance is less than the sum of the radii
   		if (distance < a[2] + b[2]) { return true ;}
-		
+
   		// Circles are not colliding
   		return false;
 	}
-	
+
 	function update() {
 		//tickable updates
-		tick++>=delay&&(tick = 0, enemies.length < elimit && addenemy())
-		
+		spawntick++>=spawndelay&&(spawntick = 0, enemies.length < elimit && addenemy(), firespell())
+		animtick++>=(xspeed!=0||yspeed!=0?animdelay/10:animdelay)&&(animtick = 0, frame++)
+
 		//updates
 		checkmouse()
 		checkkeys()
 		updateplayer()
 		updateenemies()
+		updatespells()
 	}
-	
+
 	function draw() { started ? drawgame() : drawtitle() }
-	
+
 	function drawgame(){
 		update()
-		//if(tick++ >= delay){
-			// reset tick
-			//tick = 0
-			
-			//draw background fill
+
+		//draw background fill
+		c.beginPath()
+		c.fillStyle = '#101010'
+		c.fillRect(0, 0, canvas.width, canvas.height)
+
+		/*---GAME ELEMENTS---*/
+
+		//draw player
+		//c.beginPath()
+		//c.fillStyle = '#11ff11'
+		//c.arc(player[0], player[1], player[2], 0, 2 * Math.PI)
+		//c.fill()
+		//c.stroke()
+		c.drawImage(goblin, 0 + 64 * (frame % 4), 0, 64, 64, player[0] - 32, player[1] - 32, 64, 64)
+		//52,9
+		//draw fireball
+		//c.beginPath()
+		//c.fillStyle = '#ff3333'
+		//c.arc(player[0] + 21, player[1] - 21, 8, 0, 2 * Math.PI)
+		//c.fill()
+		//c.stroke()
+		
+		
+		//draw enemies
+		enemies.forEach((e) => {
+			//c.beginPath()
+			//c.fillStyle = e[6] + '99'
+			//c.arc(e[0], e[1], e[2], 0, 2 * Math.PI)
+			//c.fill()
+			//c.stroke()
+			framecount = e[7] == ghost ? 2 : 4
+			size = e[7] == ghost ? 64 : 32
+			c.drawImage(e[7], 0 + size * (frame % framecount), 0, size, size, e[0] - size / 2, e[1] - size / 2, size, size)
+		})
+		
+		//draw spells
+		spells.forEach((s) => {
 			c.beginPath()
-			c.fillStyle = '#101010'
-			c.fillRect(0, 0, canvas.width, canvas.height)
-			
-			//draw player
-			c.beginPath()
-			c.fillStyle = '#ffbaba'			
-			c.arc(player[0], player[1], player[2], 0, 2 * Math.PI)
+			c.fillStyle = s[4] + '99'
+			c.arc(s[0], s[1], s[2], 0, 2 * Math.PI)
 			c.fill()
 			c.stroke()
+		})
 
-			//draw enemies
-			enemies.forEach((e) => {
-				c.beginPath()
-				c.fillStyle = e[6]
-				c.arc(e[0], e[1], e[2], 0, 2 * Math.PI)
-				c.fill()
-				c.stroke()
-			})
+		/*---UI ELEMENTS---*/
 
-			//draw targetloc
-			if(targetloc.length > 0){
-				c.beginPath()
-				c.fillStyle = '#ffd300'
-				c.moveTo(targetloc[0], targetloc[1])
-				c.lineTo(targetloc[0] - 15, targetloc[1] - 50)
-				c.lineTo(targetloc[0], targetloc[1] - 45)
-				c.lineTo(targetloc[0] + 15, targetloc[1] - 50)
-				c.lineTo(targetloc[0], targetloc[1])
-				c.lineWidth = 3
-				c.fill()
-				c.stroke()
-				c.closePath()
-			}
-		//}
+		//draw targetloc
+		if(targetloc.length > 0){
+			c.beginPath()
+			c.fillStyle = '#ffd300'
+			c.moveTo(targetloc[0], targetloc[1])
+			c.lineTo(targetloc[0] - 15, targetloc[1] - 50)
+			c.lineTo(targetloc[0], targetloc[1] - 45)
+			c.lineTo(targetloc[0] + 15, targetloc[1] - 50)
+			c.lineTo(targetloc[0], targetloc[1])
+			c.lineWidth = 3
+			c.fill()
+			c.stroke()
+			c.closePath()
+		}
+
 		requestAnimationFrame(draw)
 	}
-	
+
 	function drawtitle(){
 		//fill background
-		c.fillStyle = '#ead080'
+		c.fillStyle = '#432d0a'
 		c.fillRect(0, 0, canvas.width, canvas.height)
-		
+
 		//draw titles
 		c.fillStyle = '#006600'
 		c.font = '64px monospace'
-		c.fillText(	ttl, 
-					canvas.width / 2 - c.measureText(ttl).width / 2, 
+		c.fillText(	ttl,
+					canvas.width / 2 - c.measureText(ttl).width / 2,
 					canvas.height / 2 - 70
 					)
-					
+
 		//draw instructions
 		c.fillStyle = 'red'
-		c.font = '42px monospace' 
-		c.fillText(	ins, 
-					canvas.width / 2 - c.measureText(ins).width / 2, 
+		c.font = '42px monospace'
+		c.fillText(	ins,
+					canvas.width / 2 - c.measureText(ins).width / 2,
 					canvas.height / 2
 					)
+
 		requestAnimationFrame(draw)
 	}
-	
+
 </script>
